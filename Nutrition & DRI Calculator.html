@@ -1,0 +1,843 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>International Nutrition Calculator 2.0</title>
+
+<style>
+:root {
+  --blue:#1769aa;
+  --dark:#174d78;
+  --bg:#f1f5f9;
+  --light:#edf6fc;
+  --border:#dce5ee;
+  --text:#25364a;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  padding:18px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+}
+
+main{
+  max-width:1000px;
+  margin:auto;
+  background:white;
+  padding:25px;
+  border-radius:14px;
+  box-shadow:0 4px 20px #0000000c;
+}
+
+h1,h2{color:var(--dark)}
+h1{margin-top:0}
+
+.subtitle,.note{
+  color:#64748b;
+  line-height:1.65;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.field{margin-bottom:12px}
+
+label{
+  display:block;
+  font-weight:bold;
+  margin-bottom:7px;
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  font-size:15px;
+  background:white;
+}
+
+button{
+  border:0;
+  border-radius:8px;
+  padding:13px 17px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.primary{
+  width:100%;
+  background:var(--blue);
+  color:white;
+  margin-top:10px;
+}
+
+.secondary{
+  background:#e7f0f8;
+  color:var(--dark);
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.actions button{flex:1}
+
+.section{
+  margin-top:28px;
+  padding-top:18px;
+  border-top:1px solid var(--border);
+}
+
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.metric{
+  background:var(--light);
+  border-radius:10px;
+  padding:16px;
+}
+
+.metric h2{
+  font-size:27px;
+  margin:10px 0;
+}
+
+.metric span{
+  font-size:13px;
+  color:#64748b;
+}
+
+.table-wrap{overflow-x:auto}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+
+th,td{
+  padding:11px 9px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+
+th{
+  background:#edf4fa;
+  color:var(--dark);
+}
+
+.tag{
+  background:#e8f2fa;
+  color:var(--dark);
+  border-radius:5px;
+  padding:4px 7px;
+  font-size:12px;
+}
+
+.error{
+  display:none;
+  background:#fef2f2;
+  color:#b91c1c;
+  padding:12px;
+  border-radius:8px;
+  margin-top:14px;
+}
+
+#report{display:none}
+
+footer{
+  margin-top:25px;
+  border-top:1px solid var(--border);
+  padding-top:12px;
+}
+
+@media(max-width:600px){
+  body{padding:8px}
+  main{padding:16px}
+  .grid,.metrics{grid-template-columns:1fr}
+  h1{font-size:24px}
+  th,td{font-size:12px;padding:9px 6px}
+}
+
+@media print{
+  body{background:white;padding:0}
+  main{box-shadow:none}
+  .input-section,.actions,footer{display:none!important}
+  #report{display:block!important}
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<h1>Nutrition & DRI Calculator</h1>
+
+<p class="subtitle">
+Calculate estimated BMI, energy requirements,
+macronutrients, vitamins and minerals using
+selected nutritional reference standards.
+</p>
+
+<div class="input-section">
+
+<h2>Personal information</h2>
+
+<div class="grid">
+
+<div class="field">
+<label for="standard">Reference standard</label>
+<select id="standard">
+<option value="india">India – ICMR-NIN 2020</option>
+<option value="usa">USA – National Academies DRI</option>
+<option value="who">WHO/FAO – International</option>
+</select>
+</div>
+
+<div class="field">
+<label for="sex">Sex</label>
+<select id="sex">
+<option value="male">Male</option>
+<option value="female">Female</option>
+</select>
+</div>
+
+<div class="field">
+<label for="age">Age (years)</label>
+<input id="age" type="number" min="19" max="50" value="25">
+</div>
+
+<div class="field">
+<label for="height">Height (cm)</label>
+<input id="height" type="number" min="100" max="250" value="170">
+</div>
+
+<div class="field">
+<label for="weight">Weight (kg)</label>
+<input id="weight" type="number" min="20" max="300" step="0.1" value="65">
+</div>
+
+<div class="field">
+<label for="activity">Physical activity</label>
+<select id="activity">
+<option value="sedentary">Sedentary</option>
+<option value="moderate">Moderate</option>
+<option value="heavy">Heavy / Very active</option>
+</select>
+</div>
+
+</div>
+
+<button class="primary" id="calculate">
+Calculate Nutrition Requirements
+</button>
+
+<div id="error" class="error" role="alert"></div>
+
+</div>
+
+<div id="report">
+
+<div class="section">
+<h2>1. Body measurements</h2>
+
+<div class="metrics">
+
+<div class="metric">
+<b>Body Mass Index</b>
+<h2 id="bmi">--</h2>
+<span id="bmiClass"></span>
+</div>
+
+<div class="metric">
+<b>Estimated daily energy</b>
+<h2 id="calories">--</h2>
+<span>kcal/day</span>
+</div>
+
+</div>
+
+<p class="note" id="energyNote"></p>
+</div>
+
+<div class="section">
+<h2>2. Macronutrients</h2>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Nutrient</th>
+<th>Reference</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody id="macro"></tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>3. Vitamins</h2>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Vitamin</th>
+<th>Reference</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody id="vitamins"></tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>4. Minerals</h2>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Mineral</th>
+<th>Reference</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody id="minerals"></tbody>
+</table>
+</div>
+</div>
+
+<div class="section">
+<h2>5. Interpretation</h2>
+<p class="note" id="disclaimer"></p>
+</div>
+
+<div class="actions">
+<button class="secondary" id="print">
+Print report
+</button>
+
+<button class="secondary" id="csv">
+Download CSV
+</button>
+</div>
+
+</div>
+
+<footer>
+<p class="note">
+Educational use only. Nutrient reference values are
+population-based and are not individualized prescriptions.
+Pregnancy, lactation and medical conditions require
+separate reference standards.
+</p>
+</footer>
+
+</main>
+
+<script>
+"use strict";
+
+// ========================================
+// REFERENCE DATA
+// ========================================
+
+const data = {
+
+india: {
+male: {
+vitamins: {
+"Vitamin A":["1000 µg RAE","RDA"],
+"Vitamin D":["15 µg (600 IU)","RDA"],
+"Thiamin B1":["1.8 mg","RDA"],
+"Riboflavin B2":["2.5 mg","RDA"],
+"Niacin B3":["18 mg","RDA"],
+"Vitamin B6":["2.4 mg","RDA"],
+"Folate":["300 µg DFE","RDA"],
+"Vitamin B12":["2.2 µg","RDA"],
+"Vitamin C":["80 mg","RDA"]
+},
+minerals: {
+"Calcium":["1000 mg","RDA"],
+"Magnesium":["440 mg","RDA"],
+"Iron":["19 mg","RDA"],
+"Zinc":["17 mg","RDA"],
+"Iodine":["150 µg","RDA"]
+}
+},
+female: {
+vitamins: {
+"Vitamin A":["840 µg RAE","RDA"],
+"Vitamin D":["15 µg (600 IU)","RDA"],
+"Thiamin B1":["1.7 mg","RDA"],
+"Riboflavin B2":["2.4 mg","RDA"],
+"Niacin B3":["14 mg","RDA"],
+"Vitamin B6":["1.9 mg","RDA"],
+"Folate":["220 µg DFE","RDA"],
+"Vitamin B12":["2.2 µg","RDA"],
+"Vitamin C":["65 mg","RDA"]
+},
+minerals: {
+"Calcium":["1000 mg","RDA"],
+"Magnesium":["370 mg","RDA"],
+"Iron":["29 mg","RDA"],
+"Zinc":["13 mg","RDA"],
+"Iodine":["150 µg","RDA"]
+}
+}
+},
+
+usa: {
+male: {
+vitamins: {
+"Vitamin A":["900 µg RAE","RDA"],
+"Vitamin C":["90 mg","RDA"],
+"Vitamin D":["15 µg","RDA"],
+"Vitamin E":["15 mg","RDA"],
+"Vitamin K":["120 µg","AI"],
+"Thiamin B1":["1.2 mg","RDA"],
+"Riboflavin B2":["1.3 mg","RDA"],
+"Niacin B3":["16 mg NE","RDA"],
+"Vitamin B6":["1.3 mg","RDA"],
+"Folate":["400 µg DFE","RDA"],
+"Vitamin B12":["2.4 µg","RDA"],
+"Pantothenic acid":["5 mg","AI"],
+"Biotin":["30 µg","AI"],
+"Choline":["550 mg","AI"]
+},
+minerals: {
+"Calcium":["1000 mg","RDA"],
+"Iron":["8 mg","RDA"],
+"Magnesium":["400–420 mg","RDA"],
+"Zinc":["11 mg","RDA"],
+"Iodine":["150 µg","RDA"],
+"Phosphorus":["700 mg","RDA"],
+"Selenium":["55 µg","RDA"],
+"Copper":["900 µg","RDA"],
+"Manganese":["2.3 mg","AI"],
+"Potassium":["3400 mg","AI"],
+"Sodium":["1500 mg","AI"]
+}
+},
+female: {
+vitamins: {
+"Vitamin A":["700 µg RAE","RDA"],
+"Vitamin C":["75 mg","RDA"],
+"Vitamin D":["15 µg","RDA"],
+"Vitamin E":["15 mg","RDA"],
+"Vitamin K":["90 µg","AI"],
+"Thiamin B1":["1.1 mg","RDA"],
+"Riboflavin B2":["1.1 mg","RDA"],
+"Niacin B3":["14 mg NE","RDA"],
+"Vitamin B6":["1.3 mg","RDA"],
+"Folate":["400 µg DFE","RDA"],
+"Vitamin B12":["2.4 µg","RDA"],
+"Pantothenic acid":["5 mg","AI"],
+"Biotin":["30 µg","AI"],
+"Choline":["425 mg","AI"]
+},
+minerals: {
+"Calcium":["1000 mg","RDA"],
+"Iron":["18 mg","RDA"],
+"Magnesium":["310–320 mg","RDA"],
+"Zinc":["8 mg","RDA"],
+"Iodine":["150 µg","RDA"],
+"Phosphorus":["700 mg","RDA"],
+"Selenium":["55 µg","RDA"],
+"Copper":["900 µg","RDA"],
+"Manganese":["1.8 mg","AI"],
+"Potassium":["2600 mg","AI"],
+"Sodium":["1500 mg","AI"]
+}
+}
+},
+
+who: {
+male: {
+vitamins: {},
+minerals: {}
+},
+female: {
+vitamins: {},
+minerals: {}
+}
+}
+
+};
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+const $ = id => document.getElementById(id);
+
+let lastReport = null;
+
+function rows(object) {
+return Object.entries(object).map(([name, item]) => {
+return `
+<tr>
+<td>${name}</td>
+<td>${item[0]}</td>
+<td><span class="tag">${item[1]}</span></td>
+</tr>`;
+}).join("");
+}
+
+function macroRows(object) {
+return Object.entries(object).map(([name, item]) => `
+<tr>
+<td>${name}</td>
+<td>${item[0]}</td>
+<td><span class="tag">${item[1]}</span></td>
+</tr>
+`).join("");
+}
+
+function showError(message) {
+$("error").textContent = message;
+$("error").style.display = "block";
+}
+
+function hideError() {
+$("error").style.display = "none";
+}
+
+// ========================================
+// CALCULATION
+// ========================================
+
+function calculate() {
+
+hideError();
+
+const standard = $("standard").value;
+const sex = $("sex").value;
+const age = Number($("age").value);
+const height = Number($("height").value);
+const weight = Number($("weight").value);
+const activity = $("activity").value;
+
+if (!Number.isFinite(age) || age < 19 || age > 50) {
+showError("Enter an age between 19 and 50 years.");
+return;
+}
+
+if (!Number.isFinite(height) || height < 100 || height > 250) {
+showError("Enter a valid height between 100 and 250 cm.");
+return;
+}
+
+if (!Number.isFinite(weight) || weight < 20 || weight > 300) {
+showError("Enter a valid weight between 20 and 300 kg.");
+return;
+}
+
+// BMI
+
+const bmi = weight / Math.pow(height / 100, 2);
+
+let classification;
+
+if (bmi < 18.5) classification = "Underweight";
+else if (bmi < 25) classification = "Normal range";
+else if (bmi < 30) classification = "Overweight";
+else classification = "Obesity range";
+
+$("bmi").textContent = bmi.toFixed(1);
+$("bmiClass").textContent = classification;
+
+// ENERGY AND MACRONUTRIENTS
+
+let calories = null;
+let energyNote = "";
+let macro = {};
+
+if (standard === "india") {
+
+const energy = {
+male: {
+sedentary: 2110,
+moderate: 2710,
+heavy: 3470
+},
+female: {
+sedentary: 1660,
+moderate: 2130,
+heavy: 2720
+}
+};
+
+calories = energy[sex][activity];
+
+energyNote =
+"ICMR-NIN 2020 reference-person energy estimates. These values use reference body weights and are not personalized energy equations.";
+
+macro = {
+"Protein": [
+(weight * 0.83).toFixed(1) + " g/day",
+"RDA estimate"
+],
+"Protein EAR": [
+(weight * 0.66).toFixed(1) + " g/day",
+"EAR estimate"
+],
+"Protein energy share": [
+"10–15%",
+"Reference range"
+],
+"Linoleic acid": [
+"6.6 g/day",
+"Reference value"
+],
+"Alpha-linolenic acid": [
+"2.2 g/day",
+"Reference value"
+]
+};
+
+} else if (standard === "usa") {
+
+const pa = {
+male: {
+sedentary: 1,
+moderate: 1.11,
+heavy: 1.25
+},
+female: {
+sedentary: 1,
+moderate: 1.12,
+heavy: 1.27
+}
+};
+
+const p = pa[sex][activity];
+const h = height / 100;
+
+calories = sex === "male"
+? 662 - 9.53 * age + p * (15.91 * weight + 539.6 * h)
+: 354 - 6.91 * age + p * (9.36 * weight + 726 * h);
+
+macro = {
+"Protein": [
+(weight * 0.8).toFixed(1) + " g/day",
+"RDA"
+],
+"Carbohydrate": [
+"130 g/day",
+"RDA"
+],
+"Total fibre": [
+sex === "male" ? "38 g/day" : "25 g/day",
+"AI (19–50)"
+],
+"Total fat": [
+"20–35% of energy",
+"AMDR"
+],
+"Protein energy share": [
+"10–35% of energy",
+"AMDR"
+],
+"Carbohydrate energy share": [
+"45–65% of energy",
+"AMDR"
+],
+"Linoleic acid": [
+sex === "male" ? "17 g/day" : "12 g/day",
+"AI"
+],
+"Alpha-linolenic acid": [
+sex === "male" ? "1.6 g/day" : "1.1 g/day",
+"AI"
+],
+"Total water": [
+sex === "male" ? "3.7 L/day" : "2.7 L/day",
+"AI"
+]
+};
+
+} else {
+
+energyNote =
+"WHO/FAO mode does not provide an energy estimate in this version. A complete international energy model has not been loaded.";
+
+macro = {
+"Protein EAR": [
+(weight * 0.66).toFixed(1) + " g/day",
+"Estimated using 0.66 g/kg"
+],
+"Protein safe level": [
+(weight * 0.83).toFixed(1) + " g/day",
+"Estimated using 0.83 g/kg"
+]
+};
+
+}
+
+if (standard !== "who") {
+energyNote = energyNote ||
+"Estimated energy based on selected reference equations.";
+}
+
+$("calories").textContent =
+calories === null ? "Not calculated" :
+Math.round(calories).toLocaleString();
+
+$("energyNote").textContent = energyNote;
+
+// NUTRIENT DATA
+
+const vitaminData = data[standard][sex].vitamins;
+const mineralData = data[standard][sex].minerals;
+
+$("macro").innerHTML = macroRows(macro);
+
+$("vitamins").innerHTML = Object.keys(vitaminData).length
+? rows(vitaminData)
+: `<tr><td colspan="3">No complete WHO/FAO vitamin dataset loaded.</td></tr>`;
+
+$("minerals").innerHTML = Object.keys(mineralData).length
+? rows(mineralData)
+: `<tr><td colspan="3">No complete WHO/FAO mineral dataset loaded.</td></tr>`;
+
+// INTERPRETATION
+
+let disclaimer;
+
+if (standard === "india") {
+disclaimer =
+"Indian nutrient values are an abbreviated adult reference dataset based on the original calculator's supplied ICMR-NIN values. Protein estimates are calculated from entered weight. Not all EAR, AI and TUL values are included. Energy uses reference-person estimates.";
+} else if (standard === "usa") {
+disclaimer =
+"US values represent National Academies adult reference values for ages 19–50. Some nutrient values vary between ages 19–30 and 31–50; age-specific adjustments are not fully implemented in this abbreviated dataset. RDA, AI and AMDR are distinct concepts. UL values are not included in this table.";
+} else {
+disclaimer =
+"WHO/FAO mode currently displays protein reference estimates only. A complete micronutrient dataset is not loaded. Missing data must not be interpreted as zero.";
+}
+
+$("disclaimer").textContent = disclaimer;
+
+// SAVE REPORT
+
+lastReport = {
+standard, sex, age, height, weight, activity,
+bmi: bmi.toFixed(1),
+classification,
+calories: calories === null ? "Not calculated" : Math.round(calories),
+macro, vitaminData, mineralData
+};
+
+$("report").style.display = "block";
+
+$("report").scrollIntoView({
+behavior: "smooth",
+block: "start"
+});
+
+}
+
+// ========================================
+// CSV DOWNLOAD
+// ========================================
+
+function downloadCSV() {
+
+if (!lastReport) {
+showError("Please calculate your report first.");
+return;
+}
+
+const r = lastReport;
+
+const lines = [
+["INTERNATIONAL NUTRITION REPORT"],
+["Reference", r.standard],
+["Sex", r.sex],
+["Age", r.age],
+["Height cm", r.height],
+["Weight kg", r.weight],
+["Activity", r.activity],
+["BMI", r.bmi],
+["BMI classification", r.classification],
+["Energy kcal/day", r.calories],
+[],
+["MACRONUTRIENTS"],
+["Nutrient", "Value", "Type"]
+];
+
+Object.entries(r.macro).forEach(([n,v]) =>
+lines.push([n,v[0],v[1]]));
+
+lines.push([],["VITAMINS"],["Nutrient","Value","Type"]);
+
+Object.entries(r.vitaminData).forEach(([n,v]) =>
+lines.push([n,v[0],v[1]]));
+
+lines.push([],["MINERALS"],["Nutrient","Value","Type"]);
+
+Object.entries(r.mineralData).forEach(([n,v]) =>
+lines.push([n,v[0],v[1]]));
+
+const csv = lines.map(row =>
+row.map(value =>
+'"' + String(value ?? "").replace(/"/g,'""') + '"'
+).join(",")
+).join("\r\n");
+
+const blob = new Blob(
+["\uFEFF" + csv],
+{type:"text/csv;charset=utf-8"}
+);
+
+const url = URL.createObjectURL(blob);
+const link = document.createElement("a");
+
+link.href = url;
+link.download = "nutrition-report.csv";
+document.body.appendChild(link);
+link.click();
+link.remove();
+
+setTimeout(() => URL.revokeObjectURL(url),1000);
+
+}
+
+// ========================================
+// BUTTON EVENTS
+// ========================================
+
+$("calculate").addEventListener("click", calculate);
+
+$("print").addEventListener("click", () => {
+if (lastReport) window.print();
+});
+
+$("csv").addEventListener("click", downloadCSV);
+
+// Initial calculation
+
+calculate();
+
+</script>
+</body>
+</html>
