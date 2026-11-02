@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>International Nutrition Calculator</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:#f1f5f9;
+font-family:Arial,sans-serif;color:#25364a}
+main{max-width:900px;margin:auto;background:white;
+padding:25px;border-radius:14px}
+h1,h2{color:#174d78}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+label{display:block;font-weight:bold;margin:12px 0 6px}
+input,select{width:100%;padding:11px;border:1px solid #ccd5df;
+border-radius:7px;font-size:15px}
+button{background:#1769aa;color:white;border:0;padding:14px;
+border-radius:8px;width:100%;margin-top:20px;font-size:16px}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+td,th{text-align:left;padding:10px 7px;
+border-bottom:1px solid #e1e8ef;font-size:14px}
+th{background:#edf4fa}
+.section{margin-top:25px}
+.note{font-size:12px;color:#64748b;line-height:1.6}
+#report{display:none}
+.metric{background:#edf6fc;padding:14px;border-radius:8px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}
+main{padding:16px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Nutrition & DRI Calculator</h1>
+<p>Calculate estimated energy, macronutrients,
+vitamins and minerals using selected reference standards.</p>
+
+<div class="grid">
+<div>
+<label>Reference standard</label>
+<select id="standard">
+<option value="india">India – ICMR-NIN 2020</option>
+<option value="usa">USA – National Academies DRI</option>
+<option value="other">WHO/FAO – International</option>
+</select>
+</div>
+<div>
+<label>Sex</label>
+<select id="sex">
+<option value="male">Male</option>
+<option value="female">Female</option>
+</select>
+</div>
+<div>
+<label>Age (years)</label>
+<input id="age" type="number" min="19" max="50" value="25">
+</div>
+<div>
+<label>Height (cm)</label>
+<input id="height" type="number" value="170">
+</div>
+<div>
+<label>Weight (kg)</label>
+<input id="weight" type="number" value="65">
+</div>
+<div>
+<label>Physical activity</label>
+<select id="activity">
+<option value="sedentary">Sedentary</option>
+<option value="moderate">Moderate</option>
+<option value="heavy">Heavy / Very active</option>
+</select>
+</div>
+</div>
+
+<button onclick="calculate()">Calculate Nutrition Requirements</button>
+
+<div id="report">
+<div class="section">
+<h2>1. Body Measurements</h2>
+<div class="grid">
+<div class="metric"><b>BMI</b><h2 id="bmi"></h2>
+<span id="bmiClass"></span></div>
+<div class="metric"><b>Estimated daily energy</b>
+<h2 id="calories"></h2><span>kcal/day</span></div>
+</div>
+<p class="note" id="energyNote"></p>
+</div>
+
+<div class="section">
+<h2>2. Macronutrients</h2>
+<table><thead><tr>
+<th>Nutrient</th><th>Daily reference</th><th>Type</th>
+</tr></thead><tbody id="macro"></tbody></table>
+</div>
+
+<div class="section">
+<h2>3. Vitamins</h2>
+<table><thead><tr>
+<th>Vitamin</th><th>Reference value</th><th>Type</th>
+</tr></thead><tbody id="vitamins"></tbody></table>
+</div>
+
+<div class="section">
+<h2>4. Minerals</h2>
+<table><thead><tr>
+<th>Mineral</th><th>Reference value</th><th>Type</th>
+</tr></thead><tbody id="minerals"></tbody></table>
+</div>
+
+<div class="section">
+<h2>5. Important interpretation</h2>
+<p class="note" id="disclaimer"></p>
+</div>
+</div>
+</main>
+
+<script>
+const india = {
+male: {
+vitamins: {
+"Vitamin A":"1000 µg RAE",
+"Vitamin D":"15 µg (600 IU)",
+"Thiamin (B1)":"1.8 mg",
+"Riboflavin (B2)":"2.5 mg",
+"Niacin (B3)":"18 mg",
+"Vitamin B6":"2.4 mg",
+"Folate":"300 µg DFE",
+"Vitamin B12":"2.2 µg",
+"Vitamin C":"80 mg"
+},
+minerals: {
+"Calcium":"1000 mg",
+"Magnesium":"440 mg",
+"Iron":"19 mg",
+"Zinc":"17 mg",
+"Iodine":"150 µg"
+}
+},
+female: {
+vitamins: {
+"Vitamin A":"840 µg RAE",
+"Vitamin D":"15 µg (600 IU)",
+"Thiamin (B1)":"1.7 mg",
+"Riboflavin (B2)":"2.4 mg",
+"Niacin (B3)":"14 mg",
+"Vitamin B6":"1.9 mg",
+"Folate":"220 µg DFE",
+"Vitamin B12":"2.2 µg",
+"Vitamin C":"65 mg"
+},
+minerals: {
+"Calcium":"1000 mg",
+"Magnesium":"370 mg",
+"Iron":"29 mg",
+"Zinc":"13 mg",
+"Iodine":"150 µg"
+}
+}
+};
+
+const usa = {
+male: {
+vitamins: {
+"Vitamin A":"900 µg RAE",
+"Vitamin C":"90 mg",
+"Vitamin D":"15 µg",
+"Vitamin E":"15 mg",
+"Vitamin K":"120 µg",
+"Thiamin (B1)":"1.2 mg",
+"Riboflavin (B2)":"1.3 mg",
+"Niacin (B3)":"16 mg NE",
+"Vitamin B6":"1.3 mg",
+"Folate":"400 µg DFE",
+"Vitamin B12":"2.4 µg",
+"Pantothenic acid":"5 mg",
+"Biotin":"30 µg",
+"Choline":"550 mg"
+},
+minerals: {
+"Calcium":"1000 mg",
+"Iron":"8 mg",
+"Magnesium":"400–420 mg",
+"Zinc":"11 mg",
+"Iodine":"150 µg",
+"Phosphorus":"700 mg",
+"Selenium":"55 µg",
+"Copper":"900 µg",
+"Manganese":"2.3 mg",
+"Potassium":"3400 mg",
+"Sodium":"1500 mg AI"
+}
+},
+female: {
+vitamins: {
+"Vitamin A":"700 µg RAE",
+"Vitamin C":"75 mg",
+"Vitamin D":"15 µg",
+"Vitamin E":"15 mg",
+"Vitamin K":"90 µg",
+"Thiamin (B1)":"1.1 mg",
+"Riboflavin (B2)":"1.1 mg",
+"Niacin (B3)":"14 mg NE",
+"Vitamin B6":"1.3 mg",
+"Folate":"400 µg DFE",
+"Vitamin B12":"2.4 µg",
+"Pantothenic acid":"5 mg",
+"Biotin":"30 µg",
+"Choline":"425 mg"
+},
+minerals: {
+"Calcium":"1000 mg",
+"Iron":"18 mg",
+"Magnesium":"310–320 mg",
+"Zinc":"8 mg",
+"Iodine":"150 µg",
+"Phosphorus":"700 mg",
+"Selenium":"55 µg",
+"Copper":"900 µg",
+"Manganese":"1.8 mg",
+"Potassium":"2600 mg",
+"Sodium":"1500 mg AI"
+}
+}
+};
+
+function row(name,value,type="RDA / AI"){
+return `<tr><td>${name}</td><td>${value}</td><td>${type}</td></tr>`;
+}
+
+function calculate(){
+const standard=document.getElementById("standard").value;
+const sex=document.getElementById("sex").value;
+const age=Number(document.getElementById("age").value);
+const height=Number(document.getElementById("height").value);
+const weight=Number(document.getElementById("weight").value);
+const activity=document.getElementById("activity").value;
+
+if(!Number.isFinite(age)||age<19||age>50||
+!Number.isFinite(height)||height<100||
+!Number.isFinite(weight)||weight<=0){
+alert("Enter valid values. This version supports healthy adults aged 19–50.");
+return;
+}
+
+const bmi=weight/((height/100)**2);
+document.getElementById("bmi").textContent=bmi.toFixed(1);
+document.getElementById("bmiClass").textContent=
+bmi<18.5?"Underweight":bmi<25?"Normal range":
+bmi<30?"Overweight":"Obesity range";
+
+let calories=0,energyNote="",macro={};
+
+if(standard==="india"){
+const values={
+male:{sedentary:2110,moderate:2710,heavy:3470},
+female:{sedentary:1660,moderate:2130,heavy:2720}
+};
+calories=values[sex][activity];
+energyNote="ICMR-NIN 2020 reference energy for a 65 kg man or 55 kg woman. These are reference-person estimates, not individualized energy equations. Adjustments for actual body weight and activity may be needed.";
+
+macro={
+"Protein":(weight*.83).toFixed(1)+" g (RDA)",
+"Protein EAR":(weight*.66).toFixed(1)+" g (EAR)",
+"Protein energy share":"10–15% of energy",
+"Linoleic acid (n-6)":"6.6 g",
+"Alpha-linolenic acid (n-3)":"2.2 g",
+"Visible cooking fat":"20–50 g depending on energy"
+};
+
+}else if(standard==="usa"){
+const pa={
+male:{sedentary:1,moderate:1.11,heavy:1.25},
+female:{sedentary:1,moderate:1.12,heavy:1.27}
+};
+const p=pa[sex][activity];
+const h=height/100;
+calories=sex==="male"
+?662-9.53*age+p*(15.91*weight+539.6*h)
+:354-6.91*age+p*(9.36*weight+726*h);
+energyNote="Estimated Energy Requirement (EER) using National Academies adult equations. Activity categories are approximate.";
+
+macro={
+"Protein":(weight*.8).toFixed(1)+" g (RDA)",
+"Carbohydrate":"130 g (RDA)",
+"Total fibre":sex==="male"?"38 g (AI)":"25 g (AI)",
+"Total fat":"20–35% of calories (AMDR)",
+"Protein energy share":"10–35% (AMDR)",
+"Carbohydrate energy share":"45–65% (AMDR)",
+"Linoleic acid":sex==="male"?"17 g (AI)":"12 g (AI)",
+"Alpha-linolenic acid":sex==="male"?"1.6 g (AI)":"1.1 g (AI)",
+"Total water":sex==="male"?"3.7 L (AI)":"2.7 L (AI)"
+};
+
+}else{
+calories=null;
+energyNote="WHO/FAO does not provide a single universal calorie target for all adults. Individual energy expenditure depends on body size and activity. No calorie estimate is invented here.";
+macro={
+"Protein EAR":(weight*.66).toFixed(1)+" g/day",
+"Protein safe level":(weight*.83).toFixed(1)+" g/day"
+};
+}
+
+document.getElementById("calories").textContent=
+calories===null?"Not calculated":Math.round(calories);
+document.getElementById("energyNote").textContent=energyNote;
+
+const addRows=(obj)=>Object.entries(obj)
+.map(([n,v])=>row(n,v)).join("");
+
+document.getElementById("macro").innerHTML=addRows(macro);
+
+let vitaminData={},mineralData={};
+
+if(standard==="india"){
+vitaminData=india[sex].vitamins;
+mineralData=india[sex].minerals;
+}else if(standard==="usa"){
+vitaminData=usa[sex].vitamins;
+mineralData=usa[sex].minerals;
+}else{
+vitaminData={"No complete WHO/FAO adult vitamin table loaded":
+"Not reported"};
+mineralData={"No complete WHO/FAO adult mineral table loaded":
+"Not reported"};
+}
+
+document.getElementById("vitamins").innerHTML=addRows(vitaminData);
+document.getElementById("minerals").innerHTML=addRows(mineralData);
+
+document.getElementById("disclaimer").textContent=
+standard==="india"
+?"Indian micronutrient values shown are ICMR-NIN 2020 adult male/female RDA values. EAR values for micronutrients are not all included in this abbreviated table. Missing nutrients are not assumed to be zero. The energy values are based on reference body weights."
+:standard==="usa"
+?"US values are adult 19–50 National Academies reference values. RDA and AI are not interchangeable. AMDR values are acceptable percentage ranges of total energy. This abbreviated table does not include all ULs."
+:"Only protein reference values are displayed. A full WHO/FAO micronutrient dataset has not been loaded.";
+
+document.getElementById("report").style.display="block";
+}
+</script>
+</body>
+</html>
